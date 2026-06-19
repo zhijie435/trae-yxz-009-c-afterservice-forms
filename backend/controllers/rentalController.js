@@ -1,3 +1,5 @@
+const orders = require('../models/orders');
+
 const rentalDurations = [
   { id: 1, months: 1, label: '1个月', discount: 0 },
   { id: 2, months: 3, label: '3个月', discount: 0.05 },
@@ -14,12 +16,18 @@ const currentContract = {
   contractEndDate: '2026-07-31'
 };
 
+const getCurrentOrder = () => {
+  return orders.find(o => o.roomNumber === currentContract.roomNumber);
+};
+
 const getRentalDurations = (req, res) => {
   try {
+    const currentOrder = getCurrentOrder();
     res.json({
       code: 200,
       message: 'success',
       data: {
+        orderId: currentOrder ? currentOrder.id : null,
         durations: rentalDurations,
         currentContract: currentContract
       }
@@ -113,6 +121,27 @@ const submitPayment = (req, res) => {
     const orderId = 'ZL' + Date.now() + Math.floor(Math.random() * 10000);
     const paymentStatus = 'pending';
     const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const now = new Date();
+
+    const currentOrder = getCurrentOrder();
+    if (currentOrder) {
+      const statusMap = {
+        none: { status: 'none', statusText: '未申请' },
+        pending: { status: 'pending', statusText: '审核中' },
+        approved: { status: 'approved', statusText: '已同意' },
+        rejected: { status: 'rejected', statusText: '已拒绝' },
+        completed: { status: 'completed', statusText: '已完成' }
+      };
+      const statusInfo = statusMap.pending;
+      currentOrder.renewal.status = statusInfo.status;
+      currentOrder.renewal.statusText = statusInfo.statusText;
+      currentOrder.renewal.applicationTime = now.toLocaleString('zh-CN');
+      currentOrder.renewal.approvedTime = null;
+      currentOrder.renewal.newStartDate = startDate || currentContract.contractEndDate;
+      currentOrder.renewal.newEndDate = calculateEndDate(startDate || currentContract.contractEndDate, duration.months);
+      currentOrder.renewal.newMonthlyRent = feeBreakdown.monthlyRent * (1 - duration.discount);
+      currentOrder.renewal.discount = duration.discount * 100;
+    }
 
     res.json({
       code: 200,
@@ -147,8 +176,50 @@ function calculateEndDate(startDate, months) {
   return date.toISOString().split('T')[0];
 }
 
+const confirmRenewalPayment = (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        code: 400,
+        message: '订单ID不能为空'
+      });
+    }
+
+    const currentOrder = getCurrentOrder();
+    if (!currentOrder) {
+      return res.status(404).json({
+        code: 404,
+        message: '订单不存在'
+      });
+    }
+
+    const now = new Date();
+    currentOrder.renewal.status = 'completed';
+    currentOrder.renewal.statusText = '已完成';
+    currentOrder.renewal.approvedTime = now.toLocaleString('zh-CN');
+
+    res.json({
+      code: 200,
+      message: '支付成功',
+      data: {
+        orderId: currentOrder.id,
+        renewal: currentOrder.renewal
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '确认支付失败',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getRentalDurations,
   calculateRentalFee,
-  submitPayment
+  submitPayment,
+  confirmRenewalPayment
 };

@@ -95,7 +95,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { showToast, showConfirmDialog } from 'vant';
+import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant';
+import { confirmRenewalPayment } from '../api/rental';
 
 const route = useRoute();
 const router = useRouter();
@@ -172,12 +173,31 @@ const handleCancel = () => {
   });
 };
 
-const handleMockPaySuccess = () => {
+const handleMockPaySuccess = async () => {
   mocking.value = true;
-  setTimeout(() => {
+  showLoadingToast({
+    message: '支付中...',
+    forbidClick: true,
+    duration: 0
+  });
+
+  try {
+    if (orderInfo.value && orderInfo.value.orderId && orderInfo.value.orderId.startsWith('ZL')) {
+      await confirmRenewalPayment({
+        orderId: orderInfo.value.orderId
+      });
+    }
+
+    setTimeout(() => {
+      closeToast();
+      mocking.value = false;
+      showSuccessPopup.value = true;
+    }, 1500);
+  } catch (error) {
+    closeToast();
     mocking.value = false;
-    showSuccessPopup.value = true;
-  }, 1500);
+    showToast('支付失败，请稍后重试');
+  }
 };
 
 const goBack = () => {

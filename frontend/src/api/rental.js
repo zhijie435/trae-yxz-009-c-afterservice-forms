@@ -17,4 +17,8 @@ export const submitPayment = (data) => {
   return request.post('/rental/submit', data);
 };
 
+export const confirmRenewalPayment = (data) => {
+  return request.post('/rental/confirm', data);
+};
+
 export default request;

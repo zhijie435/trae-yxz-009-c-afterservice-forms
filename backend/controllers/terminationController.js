@@ -1,3 +1,5 @@
+const orders = require('../models/orders');
+
 const currentContract = {
   roomNumber: 'A栋1203室',
   monthlyRent: 3500,
@@ -6,6 +8,10 @@ const currentContract = {
   contractEndDate: '2026-07-31',
   tenantName: '张三',
   tenantPhone: '138****8888'
+};
+
+const getCurrentOrder = () => {
+  return orders.find(o => o.roomNumber === currentContract.roomNumber);
 };
 
 const getTerminationInfo = (req, res) => {
@@ -19,10 +25,13 @@ const getTerminationInfo = (req, res) => {
 
     const latestDate = contractEnd;
 
+    const currentOrder = getCurrentOrder();
+
     res.json({
       code: 200,
       message: 'success',
       data: {
+        orderId: currentOrder ? currentOrder.id : null,
         currentContract,
         daysRemaining: diffDays,
         earliestMoveOutDate: earliestDate.toISOString().split('T')[0],
@@ -82,6 +91,25 @@ const submitTermination = (req, res) => {
     const orderId = 'TZ' + Date.now() + Math.floor(Math.random() * 10000);
     const now = new Date();
     const status = 'pending';
+
+    const currentOrder = getCurrentOrder();
+    if (currentOrder) {
+      const statusMap = {
+        none: { status: 'none', statusText: '未申请' },
+        pending: { status: 'pending', statusText: '审核中' },
+        approved: { status: 'approved', statusText: '已同意' },
+        rejected: { status: 'rejected', statusText: '已拒绝' },
+        completed: { status: 'completed', statusText: '已完成' }
+      };
+      const statusInfo = statusMap[status] || statusMap.none;
+      currentOrder.termination.status = statusInfo.status;
+      currentOrder.termination.statusText = statusInfo.statusText;
+      currentOrder.termination.applicationTime = now.toLocaleString('zh-CN');
+      currentOrder.termination.approvedTime = null;
+      currentOrder.termination.moveOutDate = moveOutDate;
+      currentOrder.termination.refundAmount = currentContract.deposit;
+      currentOrder.termination.reason = remark || '';
+    }
 
     res.json({
       code: 200,
