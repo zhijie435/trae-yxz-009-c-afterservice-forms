@@ -236,6 +236,7 @@ const confirmPayment = async () => {
     closeToast();
     
     if (res.data.code === 200) {
+      localStorage.setItem('pendingOrder', JSON.stringify(res.data.data));
       router.push({
         path: '/payment',
         query: { orderId: res.data.data.orderId }

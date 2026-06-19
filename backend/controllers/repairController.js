@@ -1,3 +1,164 @@
+const repairOrders = [
+  {
+    id: 'BX20260115001',
+    orderNo: 'BX20260115001',
+    type: 'appliance',
+    typeName: '家具家电',
+    subTypeName: '空调维修',
+    description: '空调不制冷，开机后只有风没有冷气，已经持续2天了。',
+    images: [
+      'https://picsum.photos/200/200?random=1',
+      'https://picsum.photos/200/200?random=2'
+    ],
+    roomNumber: 'A栋1203室',
+    tenantName: '张三',
+    tenantPhone: '138****8888',
+    appointmentTime: '工作日 09:00-12:00',
+    status: 'completed',
+    statusText: '已完成',
+    statusColor: '#07c160',
+    createTime: '2026-01-15 14:30:00',
+    worker: {
+      name: '李师傅',
+      phone: '139****1234',
+      avatar: '',
+      skill: '空调维修专家'
+    },
+    fee: 180,
+    feeDetail: [
+      { name: '上门服务费', amount: 50 },
+      { name: '零配件费', amount: 100 },
+      { name: '人工费', amount: 30 }
+    ],
+    guaranteeDays: 90,
+    statusTracks: [
+      {
+        status: 'submitted',
+        statusText: '工单已提交',
+        time: '2026-01-15 14:30:00',
+        description: '您的报修工单已成功提交，等待分配处理人员',
+        operator: '系统'
+      },
+      {
+        status: 'dispatched',
+        statusText: '工单已派单',
+        time: '2026-01-15 15:00:00',
+        description: '工单已分配给李师傅，预计24小时内上门处理',
+        operator: '客服小王'
+      },
+      {
+        status: 'arrived',
+        statusText: '维修人员已到达',
+        time: '2026-01-16 09:30:00',
+        description: '李师傅已到达现场，开始检查维修',
+        operator: '李师傅'
+      },
+      {
+        status: 'repairing',
+        statusText: '维修中',
+        time: '2026-01-16 10:15:00',
+        description: '经检测为压缩机故障，正在更换配件',
+        operator: '李师傅'
+      },
+      {
+        status: 'completed',
+        statusText: '维修完成',
+        time: '2026-01-16 11:45:00',
+        description: '空调已修复，制冷正常。保修90天',
+        operator: '李师傅'
+      }
+    ],
+    vouchers: [
+      {
+        id: 1,
+        type: 'image',
+        url: 'https://picsum.photos/200/200?random=3',
+        name: '空调铭牌.jpg',
+        uploadTime: '2026-01-15 14:35:00',
+        uploader: '张三'
+      }
+    ],
+    serviceRating: null,
+    comment: ''
+  },
+  {
+    id: 'BX20260220002',
+    orderNo: 'BX20260220002',
+    type: 'plumbing',
+    typeName: '水电维修',
+    subTypeName: '水龙头更换',
+    description: '厨房水龙头漏水，关不紧，水一直滴。',
+    images: [
+      'https://picsum.photos/200/200?random=4'
+    ],
+    roomNumber: 'A栋1203室',
+    tenantName: '张三',
+    tenantPhone: '138****8888',
+    appointmentTime: '周末 14:00-18:00',
+    status: 'in_progress',
+    statusText: '维修中',
+    statusColor: '#ff976a',
+    createTime: '2026-02-20 09:15:00',
+    worker: {
+      name: '王师傅',
+      phone: '138****5678',
+      avatar: '',
+      skill: '水电维修'
+    },
+    fee: 120,
+    feeDetail: [
+      { name: '上门服务费', amount: 50 },
+      { name: '水龙头配件', amount: 70 }
+    ],
+    guaranteeDays: 90,
+    statusTracks: [
+      {
+        status: 'submitted',
+        statusText: '工单已提交',
+        time: '2026-02-20 09:15:00',
+        description: '您的报修工单已成功提交，等待分配处理人员',
+        operator: '系统'
+      },
+      {
+        status: 'dispatched',
+        statusText: '工单已派单',
+        time: '2026-02-20 09:45:00',
+        description: '工单已分配给王师傅，预计48小时内上门处理',
+        operator: '客服小李'
+      },
+      {
+        status: 'arrived',
+        statusText: '维修人员已到达',
+        time: '2026-02-22 15:00:00',
+        description: '王师傅已到达现场，开始检查维修',
+        operator: '王师傅'
+      },
+      {
+        status: 'repairing',
+        statusText: '维修中',
+        time: '2026-02-22 15:30:00',
+        description: '正在更换新的水龙头',
+        operator: '王师傅'
+      }
+    ],
+    vouchers: [],
+    serviceRating: null,
+    comment: ''
+  }
+];
+
+const customerService = {
+  phone: '400-123-4567',
+  serviceTime: '09:00-21:00',
+  onlineServiceAvailable: true,
+  wechatService: 'rental_service_2026',
+  faqs: [
+    { q: '报修后多久上门？', a: '一般故障24小时内上门，紧急故障2小时内响应。' },
+    { q: '维修费用怎么算？', a: '非人为损坏免费，人为损坏需承担配件费和人工费。' },
+    { q: '维修有保修吗？', a: '所有维修项目均享受90天质保期。' }
+  ]
+};
+
 const faultTypes = [
   { id: 1, name: '水电维修', icon: 'water-o', subTypes: [
     { id: '1-1', name: '水龙头漏水' },
@@ -137,7 +298,258 @@ const submitRepair = (req, res) => {
   }
 };
 
+const getRepairOrderDetail = (req, res) => {
+  try {
+    const { orderId } = req.query;
+
+    if (!orderId) {
+      return res.status(400).json({
+        code: 400,
+        message: '工单ID不能为空'
+      });
+    }
+
+    const order = repairOrders.find(o => o.id === orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        code: 404,
+        message: '工单不存在'
+      });
+    }
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: order
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '获取工单详情失败',
+      error: error.message
+    });
+  }
+};
+
+const getRepairOrderList = (req, res) => {
+  try {
+    const { status } = req.query;
+    let list = repairOrders;
+
+    if (status && status !== 'all') {
+      list = repairOrders.filter(o => o.status === status);
+    }
+
+    const simplifiedList = list.map(order => ({
+      id: order.id,
+      orderNo: order.orderNo,
+      typeName: order.typeName,
+      subTypeName: order.subTypeName,
+      description: order.description,
+      status: order.status,
+      statusText: order.statusText,
+      statusColor: order.statusColor,
+      roomNumber: order.roomNumber,
+      createTime: order.createTime,
+      workerName: order.worker?.name || '',
+      fee: order.fee
+    }));
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        list: simplifiedList,
+        total: simplifiedList.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '获取工单列表失败',
+      error: error.message
+    });
+  }
+};
+
+const uploadVoucher = (req, res) => {
+  try {
+    const { orderId, type, url, name } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        code: 400,
+        message: '工单ID不能为空'
+      });
+    }
+
+    const order = repairOrders.find(o => o.id === orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        code: 404,
+        message: '工单不存在'
+      });
+    }
+
+    const voucher = {
+      id: Date.now(),
+      type: type || 'image',
+      url: url || `https://picsum.photos/200/200?random=${Date.now()}`,
+      name: name || '凭证图片.jpg',
+      uploadTime: new Date().toLocaleString('zh-CN'),
+      uploader: order.tenantName
+    };
+
+    order.vouchers.push(voucher);
+
+    const trackItem = {
+      status: 'voucher_added',
+      statusText: '补充凭证已上传',
+      time: new Date().toLocaleString('zh-CN'),
+      description: `用户上传了补充凭证：${voucher.name}`,
+      operator: order.tenantName
+    };
+    order.statusTracks.push(trackItem);
+
+    res.json({
+      code: 200,
+      message: '凭证上传成功',
+      data: {
+        voucher,
+        statusTrack: trackItem
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '凭证上传失败',
+      error: error.message
+    });
+  }
+};
+
+const getCustomerService = (req, res) => {
+  try {
+    res.json({
+      code: 200,
+      message: 'success',
+      data: customerService
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '获取客服信息失败',
+      error: error.message
+    });
+  }
+};
+
+const contactService = (req, res) => {
+  try {
+    const { orderId, type, content, contact } = req.body;
+
+    if (!type) {
+      return res.status(400).json({
+        code: 400,
+        message: '联系类型不能为空'
+      });
+    }
+
+    let message = '';
+    if (type === 'complaint') {
+      message = '您的投诉已提交，客服将在24小时内与您联系';
+    } else if (type === 'consult') {
+      message = '您的咨询已收到，客服将尽快回复';
+    } else if (type === 'urgent') {
+      message = '您的紧急请求已收到，专人将在1小时内联系您';
+    } else {
+      message = '消息已发送，请注意查看回复';
+    }
+
+    res.json({
+      code: 200,
+      message: '发送成功',
+      data: {
+        message,
+        ticketId: 'KF' + Date.now(),
+        estimatedResponse: type === 'urgent' ? '1小时内' : '24小时内'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '发送失败',
+      error: error.message
+    });
+  }
+};
+
+const submitRating = (req, res) => {
+  try {
+    const { orderId, rating, comment } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        code: 400,
+        message: '工单ID不能为空'
+      });
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        code: 400,
+        message: '请给出1-5星评价'
+      });
+    }
+
+    const order = repairOrders.find(o => o.id === orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        code: 404,
+        message: '工单不存在'
+      });
+    }
+
+    order.serviceRating = rating;
+    order.comment = comment || '';
+
+    const trackItem = {
+      status: 'rated',
+      statusText: '用户已评价',
+      time: new Date().toLocaleString('zh-CN'),
+      description: `用户给出${rating}星评价${comment ? '：' + comment : ''}`,
+      operator: order.tenantName
+    };
+    order.statusTracks.push(trackItem);
+
+    res.json({
+      code: 200,
+      message: '评价提交成功',
+      data: {
+        rating,
+        comment: comment || '',
+        statusTrack: trackItem
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '评价提交失败',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getRepairInfo,
-  submitRepair
+  submitRepair,
+  getRepairOrderList,
+  getRepairOrderDetail,
+  uploadVoucher,
+  getCustomerService,
+  contactService,
+  submitRating
 };
