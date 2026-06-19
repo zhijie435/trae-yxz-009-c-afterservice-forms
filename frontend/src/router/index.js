@@ -19,6 +19,21 @@ const routes = [
     path: '/termination',
     name: 'Termination',
     component: () => import('../views/Termination.vue')
+  },
+  {
+    path: '/repair',
+    name: 'Repair',
+    component: () => import('../views/Repair.vue')
+  },
+  {
+    path: '/invoice',
+    name: 'Invoice',
+    component: () => import('../views/Invoice.vue')
+  },
+  {
+    path: '/order-detail',
+    name: 'OrderDetail',
+    component: () => import('../views/OrderDetail.vue')
   }
 ];
 

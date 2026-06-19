@@ -3,6 +3,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const rentalRoutes = require('./routes/rental');
 const terminationRoutes = require('./routes/termination');
+const repairRoutes = require('./routes/repair');
+const invoiceRoutes = require('./routes/invoice');
+const orderRoutes = require('./routes/order');
 
 const app = express();
 const PORT = 3000;
@@ -13,6 +16,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api/rental', rentalRoutes);
 app.use('/api/termination', terminationRoutes);
+app.use('/api/repair', repairRoutes);
+app.use('/api/invoice', invoiceRoutes);
+app.use('/api/order', orderRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '服务运行正常' });

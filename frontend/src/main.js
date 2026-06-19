@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
-import { Button, Cell, CellGroup, Radio, RadioGroup, Field, Tag, Popup, Icon, CountDown, Calendar, Picker } from 'vant';
+import { Button, Cell, CellGroup, Radio, RadioGroup, Field, Tag, Popup, Icon, CountDown, Calendar, Picker, Checkbox, CheckboxGroup } from 'vant';
 import 'vant/lib/index.css';
 import './styles/global.css';
 
@@ -20,5 +20,7 @@ app.use(Icon);
 app.use(CountDown);
 app.use(Calendar);
 app.use(Picker);
+app.use(Checkbox);
+app.use(CheckboxGroup);
 
 app.mount('#app');
