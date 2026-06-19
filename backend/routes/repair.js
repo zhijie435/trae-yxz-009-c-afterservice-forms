@@ -4,6 +4,7 @@ const repairController = require('../controllers/repairController');
 
 router.get('/info', repairController.getRepairInfo);
 router.post('/submit', repairController.submitRepair);
+router.post('/upload-image', repairController.uploadImage);
 router.get('/orders', repairController.getRepairOrderList);
 router.get('/order-detail', repairController.getRepairOrderDetail);
 router.post('/upload-voucher', repairController.uploadVoucher);

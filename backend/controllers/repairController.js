@@ -543,11 +543,145 @@ const submitRating = (req, res) => {
   }
 };
 
+const uploadImage = (req, res) => {
+  try {
+    const { fileName, fileType, fileSize, fileData } = req.body;
+
+    if (!fileName) {
+      return res.status(400).json({
+        code: 400,
+        message: '文件名不能为空'
+      });
+    }
+
+    if (!fileType) {
+      return res.status(400).json({
+        code: 400,
+        message: '文件类型不能为空'
+      });
+    }
+
+    if (!fileData) {
+      return res.status(400).json({
+        code: 400,
+        message: '文件内容不能为空，请重新选择文件'
+      });
+    }
+
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    const isImage = allowedImageTypes.includes(fileType);
+    const isVideo = allowedVideoTypes.includes(fileType);
+
+    if (!isImage && !isVideo) {
+      const typeMap = {
+        'image/jpeg': 'JPG',
+        'image/jpg': 'JPG',
+        'image/png': 'PNG',
+        'image/gif': 'GIF',
+        'image/webp': 'WEBP',
+        'image/bmp': 'BMP',
+        'video/mp4': 'MP4',
+        'video/webm': 'WEBM',
+        'video/ogg': 'OGG',
+        'video/quicktime': 'MOV'
+      };
+      return res.status(400).json({
+        code: 400,
+        message: `不支持的文件格式（${fileType || '未知格式'}），仅支持 JPG、PNG、GIF、WEBP 图片和 MP4 视频`
+      });
+    }
+
+    const maxImageSize = 10 * 1024 * 1024;
+    const maxVideoSize = 100 * 1024 * 1024;
+
+    if (isImage && fileSize > maxImageSize) {
+      return res.status(400).json({
+        code: 400,
+        message: `图片大小不能超过 10MB，当前文件大小为 ${(fileSize / 1024 / 1024).toFixed(2)}MB`
+      });
+    }
+
+    if (isVideo && fileSize > maxVideoSize) {
+      return res.status(400).json({
+        code: 400,
+        message: `视频大小不能超过 100MB，当前文件大小为 ${(fileSize / 1024 / 1024).toFixed(2)}MB`
+      });
+    }
+
+    if (!fileSize || fileSize <= 0) {
+      return res.status(400).json({
+        code: 400,
+        message: '文件大小为 0，可能是文件已损坏或未正确读取'
+      });
+    }
+
+    if (isImage && fileSize < 1024) {
+      return res.status(400).json({
+        code: 400,
+        message: '图片文件过小，可能是文件已损坏，请重新选择清晰的图片'
+      });
+    }
+
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+    const validVideoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'qt'];
+    if (isImage && !validImageExtensions.includes(fileExtension)) {
+      return res.status(400).json({
+        code: 400,
+        message: `图片文件后缀名不匹配（.${fileExtension}），请检查文件格式是否正确`
+      });
+    }
+    if (isVideo && !validVideoExtensions.includes(fileExtension)) {
+      return res.status(400).json({
+        code: 400,
+        message: `视频文件后缀名不匹配（.${fileExtension}），请检查文件格式是否正确`
+      });
+    }
+
+    const errorRate = 0.05;
+    if (Math.random() < errorRate) {
+      const errors = [
+        '服务器存储空间不足，请稍后重试或联系客服',
+        '上传通道繁忙，请稍后重试',
+        '网络连接中断，请检查网络后重试',
+        '文件读取超时，请重新选择文件上传'
+      ];
+      return res.status(500).json({
+        code: 500,
+        message: errors[Math.floor(Math.random() * errors.length)]
+      });
+    }
+
+    const url = `https://picsum.photos/seed/${Date.now()}/${isVideo ? 400 : 600}/${isVideo ? 300 : 600}`;
+
+    setTimeout(() => {
+      res.json({
+        code: 200,
+        message: '上传成功',
+        data: {
+          url,
+          name: fileName,
+          type: isImage ? 'image' : 'video',
+          size: fileSize
+        }
+      });
+    }, 300 + Math.random() * 500);
+
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: `上传失败：${error.message || '未知错误'}，请检查网络或重新选择文件`
+    });
+  }
+};
+
 module.exports = {
   getRepairInfo,
   submitRepair,
   getRepairOrderList,
   getRepairOrderDetail,
+  uploadImage,
   uploadVoucher,
   getCustomerService,
   contactService,

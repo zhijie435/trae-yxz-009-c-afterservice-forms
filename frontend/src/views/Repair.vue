@@ -281,26 +281,38 @@ const handleFileChange = async (e) => {
   const filesToUpload = files.slice(0, remaining);
 
   for (const file of filesToUpload) {
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      showToast(`「${file.name}」格式不支持，仅支持图片和视频文件`);
+      continue;
+    }
     if (file.type.startsWith('image/') && file.size > 10 * 1024 * 1024) {
-      showToast('图片大小不能超过10MB');
+      showToast(`「${file.name}」超过10MB，请压缩后重新上传`);
       continue;
     }
     if (file.type.startsWith('video/') && file.size > 100 * 1024 * 1024) {
-      showToast('视频大小不能超过100MB');
+      showToast(`「${file.name}」超过100MB，请压缩后重新上传`);
+      continue;
+    }
+    if (!file.size || file.size <= 0) {
+      showToast(`「${file.name}」为空文件或已损坏，请重新选择`);
       continue;
     }
 
-    showLoadingToast({ message: '上传中...', forbidClick: true, duration: 0 });
+    showLoadingToast({ message: `上传中 (${file.name})...`, forbidClick: true, duration: 0 });
 
     try {
       const result = await uploadImage(file);
       uploadedImages.value.push({
         url: result.url,
         name: file.name,
-        type: file.type.startsWith('video/') ? 'video' : 'image'
+        type: result.type || (file.type.startsWith('video/') ? 'video' : 'image')
       });
     } catch (err) {
-      showToast('上传失败');
+      const errorMsg = err && err.message ? err.message : '上传失败';
+      showToast({
+        message: `「${file.name}」${errorMsg}`,
+        duration: 3500
+      });
     } finally {
       closeToast();
     }
