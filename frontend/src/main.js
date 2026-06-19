@@ -1,7 +1,37 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
-import { Button, Cell, CellGroup, Radio, RadioGroup, Field, Tag, Popup, Icon, CountDown, Calendar, Picker, Checkbox, CheckboxGroup, Steps, Step, Rate, NavBar, ImagePreview, Dialog, Image as VanImage } from 'vant';
+import {
+  Button,
+  Cell,
+  CellGroup,
+  Radio,
+  RadioGroup,
+  Field,
+  Tag,
+  Popup,
+  Icon,
+  CountDown,
+  Calendar,
+  Picker,
+  Checkbox,
+  CheckboxGroup,
+  Steps,
+  Step,
+  Rate,
+  NavBar,
+  ImagePreview,
+  Dialog,
+  Image as VanImage,
+  Tabs,
+  Tab,
+  DropdownMenu,
+  DropdownItem,
+  Search,
+  Empty,
+  Loading,
+  Toast
+} from 'vant';
 import 'vant/lib/index.css';
 import './styles/global.css';
 
@@ -29,5 +59,13 @@ app.use(NavBar);
 app.use(ImagePreview);
 app.use(Dialog);
 app.use(VanImage);
+app.use(Tabs);
+app.use(Tab);
+app.use(DropdownMenu);
+app.use(DropdownItem);
+app.use(Search);
+app.use(Empty);
+app.use(Loading);
+app.use(Toast);
 
 app.mount('#app');

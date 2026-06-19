@@ -1,8 +1,40 @@
 <template>
   <div class="page-container">
     <div class="header">
-      <div class="header-title">续租申请</div>
-      <div class="header-subtitle">请选择续租时长并确认费用</div>
+      <div class="header-title">租客服务中心</div>
+      <div class="header-subtitle">一站式办理续租、退租、报修、发票</div>
+    </div>
+
+    <div class="quick-nav">
+      <div class="nav-item" @click="goToRepair">
+        <div class="nav-icon repair">
+          <van-icon name="service-o" size="28" />
+        </div>
+        <div class="nav-text">我要报修</div>
+      </div>
+      <div class="nav-item" @click="goToAfterSales">
+        <div class="nav-icon list">
+          <van-icon name="orders-o" size="28" />
+        </div>
+        <div class="nav-text">工单进度</div>
+      </div>
+      <div class="nav-item" @click="goToTermination">
+        <div class="nav-icon termination">
+          <van-icon name="log-out" size="28" />
+        </div>
+        <div class="nav-text">申请退租</div>
+      </div>
+      <div class="nav-item" @click="goToInvoice">
+        <div class="nav-icon invoice">
+          <van-icon name="balance-list-o" size="28" />
+        </div>
+        <div class="nav-text">开具发票</div>
+      </div>
+    </div>
+
+    <div class="section-title-main">
+      <span class="title-bar"></span>
+      <span class="title-text">续租申请</span>
     </div>
 
     <div v-if="currentContract" class="section-card">
@@ -176,6 +208,22 @@ const paymentMethods = [
   { id: 'bank', name: '银行卡支付', desc: '储蓄卡/信用卡', icon: 'balance-o', color: '#ff976a' }
 ];
 
+const goToRepair = () => {
+  router.push('/repair');
+};
+
+const goToAfterSales = () => {
+  router.push('/after-sales');
+};
+
+const goToTermination = () => {
+  router.push('/termination');
+};
+
+const goToInvoice = () => {
+  router.push('/invoice');
+};
+
 const getDiscountedMonthlyPrice = (duration) => {
   if (!currentContract.value) return '0';
   const discounted = currentContract.value.monthlyRent * (1 - duration.discount);
@@ -284,6 +332,86 @@ onMounted(() => {
   background: linear-gradient(135deg, #1989fa, #07c160);
   padding: 40px 20px 30px;
   color: #fff;
+}
+
+.quick-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #fff;
+  padding: 20px 8px;
+  margin: -16px 12px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+.nav-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon.repair {
+  background: linear-gradient(135deg, #ff976a, #ff6034);
+  color: #fff;
+}
+
+.nav-icon.list {
+  background: linear-gradient(135deg, #1989fa, #07c160);
+  color: #fff;
+}
+
+.nav-icon.termination {
+  background: linear-gradient(135deg, #ee0a24, #ff6034);
+  color: #fff;
+}
+
+.nav-icon.invoice {
+  background: linear-gradient(135deg, #7232dd, #be77ff);
+  color: #fff;
+}
+
+.nav-text {
+  font-size: 13px;
+  color: #323233;
+  font-weight: 500;
+}
+
+.section-title-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px 12px;
+}
+
+.section-title-main .title-bar {
+  width: 4px;
+  height: 18px;
+  background: linear-gradient(180deg, #1989fa, #07c160);
+  border-radius: 2px;
+}
+
+.section-title-main .title-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: #323233;
 }
 
 .header-title {

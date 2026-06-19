@@ -1,5 +1,5 @@
 <template>
-  <div class="repair-detail">
+  <div class="after-sales-detail">
     <div class="header">
       <van-nav-bar
         title="工单详情"
@@ -18,16 +18,18 @@
         加载中...
       </div>
     </div>
+
     <div v-else-if="error" class="content">
       <div style="text-align: center; padding: 40px; color: #ee0a24;">
         加载失败：{{ error }}
       </div>
     </div>
+
     <div v-else-if="orderDetail" class="content">
       <div class="status-card">
         <div class="status-left">
           <div class="status-icon">
-            <van-icon name="wrench-o" size="28" />
+            <van-icon name="service-o" size="28" />
           </div>
           <div class="status-info">
             <div class="status-text" :style="{ color: orderDetail.statusColor }">
@@ -36,111 +38,86 @@
             <div class="order-no">工单号：{{ orderDetail.orderNo }}</div>
           </div>
         </div>
-        <div class="status-time">
-          {{ orderDetail.createTime }}
+        <div class="status-priority" :class="orderDetail.priority">
+          {{ orderDetail.priorityText }}
         </div>
       </div>
 
       <div class="info-card">
-        <div class="card-title">维修信息</div>
+        <div class="card-title">
+          <span>工单信息</span>
+          <van-tag size="medium" type="primary" plain round>
+            {{ orderDetail.typeName }}
+          </van-tag>
+        </div>
+        <div class="order-title">{{ orderDetail.title }}</div>
+        <div class="order-description">{{ orderDetail.description }}</div>
         <div class="info-row">
-          <span class="label">故障类型</span>
-          <span class="value">{{ orderDetail.typeName }} - {{ orderDetail.subTypeName }}</span>
+          <span class="label">关联单号</span>
+          <span class="value mono">{{ orderDetail.relatedOrderNo || '-' }}</span>
         </div>
         <div class="info-row">
-          <span class="label">房屋地址</span>
+          <span class="label">房屋</span>
           <span class="value">{{ orderDetail.roomNumber }}</span>
         </div>
         <div class="info-row">
-          <span class="label">预约时间</span>
-          <span class="value">{{ orderDetail.appointmentTime }}</span>
+          <span class="label">提交时间</span>
+          <span class="value">{{ orderDetail.createTime }}</span>
         </div>
-        <div class="info-row desc-row">
-          <span class="label">故障描述</span>
-          <span class="value">{{ orderDetail.description }}</span>
-        </div>
-        <div class="image-list" v-if="orderDetail.images && orderDetail.images.length">
-          <img
-            v-for="(img, idx) in orderDetail.images"
-            :key="idx"
-            :src="img"
-            class="repair-image"
-            @click="previewImage(orderDetail.images, idx)"
-          />
+        <div class="info-row" v-if="orderDetail.estimatedResolveTime">
+          <span class="label">预计解决</span>
+          <span class="value highlight">{{ orderDetail.estimatedResolveTime }}</span>
         </div>
       </div>
 
-      <div class="info-card" v-if="orderDetail.worker && orderDetail.worker.name">
-        <div class="card-title">维修人员</div>
-        <div class="worker-info">
-          <div class="worker-avatar">
+      <div class="info-card" v-if="orderDetail.handler && orderDetail.handler.name">
+        <div class="card-title">处理人员</div>
+        <div class="handler-info">
+          <div class="handler-avatar">
             <van-icon name="user-o" size="24" />
           </div>
-          <div class="worker-detail">
-            <div class="worker-name">{{ orderDetail.worker.name }}</div>
-            <div class="worker-skill">{{ orderDetail.worker.skill }}</div>
+          <div class="handler-detail">
+            <div class="handler-name">{{ orderDetail.handler.name }}</div>
+            <div class="handler-role">{{ orderDetail.handler.role }}</div>
           </div>
           <van-button
             type="primary"
             size="small"
             icon="phone-o"
-            @click="callWorker(orderDetail.worker.phone)"
+            @click="callHandler(orderDetail.handler.phone)"
           >
             联系
           </van-button>
         </div>
       </div>
 
-      <div class="info-card" v-if="orderDetail.fee && orderDetail.status === 'completed'">
-        <div class="card-title">
-          费用明细
-          <span class="fee-total">共 ¥{{ orderDetail.fee }}</span>
-        </div>
-        <div
-          v-for="(item, idx) in orderDetail.feeDetail"
-          :key="idx"
-          class="fee-item"
-        >
-          <span>{{ item.name }}</span>
-          <span class="fee-amount">¥{{ item.amount }}</span>
-        </div>
-        <div class="guarantee-tip">
-          <van-icon name="shield-o" color="#07c160" />
-          <span> 质保期{{ orderDetail.guaranteeDays }}天，非人为损坏免费返修</span>
-        </div>
-      </div>
-
       <div class="info-card">
         <div class="card-title">
           服务进度
-          <van-tag
-            size="medium"
-            type="primary"
-            plain
-            round
-          >
+          <van-tag size="medium" type="primary" plain round>
             {{ orderDetail.statusTracks.length }}个节点
           </van-tag>
         </div>
-        <van-steps direction="vertical" :active="orderDetail.statusTracks.length - 1">
-          <van-step
-            v-for="(track, idx) in orderDetail.statusTracks"
+        <div class="timeline">
+          <div
+            v-for="(track, idx) in reversedTracks"
             :key="idx"
+            class="timeline-item"
+            :class="{ active: idx === 0, last: idx === reversedTracks.length - 1 }"
           >
-            <template #title>
-              <div class="step-title">
-                <span>{{ track.statusText }}</span>
-                <span class="step-time">{{ track.time }}</span>
+            <div class="timeline-dot" :class="getTrackTypeClass(track.type)">
+              <van-icon :name="getTrackIcon(track.status)" size="14" />
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <span class="timeline-title">{{ track.statusText }}</span>
+                <span class="timeline-time">{{ track.time }}</span>
               </div>
-            </template>
-            <template #description>
-              <div class="step-desc">
-                <div>{{ track.description }}</div>
-                <div class="step-operator">操作人：{{ track.operator }}</div>
-              </div>
-            </template>
-          </van-step>
-        </van-steps>
+              <div class="timeline-desc">{{ track.description }}</div>
+              <div class="timeline-operator">操作人：{{ track.operator }}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="info-card">
@@ -156,8 +133,13 @@
             :key="voucher.id"
             class="voucher-item"
           >
-            <img :src="voucher.url" class="voucher-image" @click="previewImage(vouchers.map(v => v.url), idx)" />
+            <img
+              :src="voucher.url"
+              class="voucher-image"
+              @click="previewImage(vouchers.map(v => v.url), idx)"
+            />
             <div class="voucher-name">{{ voucher.name }}</div>
+            <div class="voucher-time">{{ voucher.uploadTime }}</div>
           </div>
           <div class="voucher-add" @click="handleAddVoucher">
             <van-icon name="photograph" size="24" color="#969799" />
@@ -165,7 +147,8 @@
           </div>
         </div>
         <div class="voucher-tip">
-          上传照片、视频等凭证，有助于维修人员更快定位问题
+          <van-icon name="info-o" size="12" color="#969799" />
+          <span>上传照片、视频等凭证，有助于更快解决问题</span>
         </div>
       </div>
 
@@ -193,28 +176,6 @@
         >
           去评价
         </van-button>
-      </template>
-      <template v-else-if="orderDetail.status === 'repairing' || orderDetail.status === 'in_progress'">
-        <div class="bottom-actions">
-          <van-button
-            type="default"
-            size="large"
-            icon="service-o"
-            @click="showServicePopup = true"
-            class="action-btn"
-          >
-            联系客服
-          </van-button>
-          <van-button
-            type="primary"
-            size="large"
-            icon="passed"
-            @click="showAcceptPopup = true"
-            class="action-btn primary"
-          >
-            验收确认
-          </van-button>
-        </div>
       </template>
       <template v-else>
         <van-button
@@ -355,59 +316,6 @@
       </div>
     </van-popup>
 
-    <van-popup v-model:show="showAcceptPopup" round position="bottom" :style="{ height: '55%' }">
-      <div class="accept-popup">
-        <div class="popup-title">
-          <span>维修验收</span>
-          <van-icon name="close" size="20" @click="showAcceptPopup = false" />
-        </div>
-        <div class="accept-form">
-          <div class="accept-label">验收结果</div>
-          <div class="accept-options">
-            <div
-              class="accept-option"
-              :class="{ active: acceptResult === 'accepted' }"
-              @click="acceptResult = 'accepted'"
-            >
-              <van-icon name="checked" size="24" color="#07c160" />
-              <span>验收通过</span>
-            </div>
-            <div
-              class="accept-option"
-              :class="{ active: acceptResult === 'rejected' }"
-              @click="acceptResult = 'rejected'"
-            >
-              <van-icon name="cross" size="24" color="#ee0a24" />
-              <span>验收不通过</span>
-            </div>
-          </div>
-          <van-field
-            v-model="acceptComment"
-            type="textarea"
-            rows="3"
-            maxlength="200"
-            label="补充说明"
-            placeholder="请描述验收情况（选填）"
-            show-word-limit
-          />
-          <div class="accept-tip">
-            <van-icon name="info-o" size="14" color="#1989fa" />
-            <span>验收通过后工单将完成，享受90天质保服务</span>
-          </div>
-          <van-button
-            block
-            type="primary"
-            size="large"
-            :loading="submittingAccept"
-            :disabled="!acceptResult"
-            @click="handleAcceptRepair"
-          >
-            确认提交
-          </van-button>
-        </div>
-      </div>
-    </van-popup>
-
     <van-popup v-model:show="showTypePicker" round position="bottom">
       <van-picker
         :columns="contactTypeOptions"
@@ -429,18 +337,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { showToast, showConfirmDialog, showSuccessToast, showFailToast, ImagePreview } from 'vant';
 import {
-  getRepairOrderDetail,
+  showToast,
+  showConfirmDialog,
+  showSuccessToast,
+  showFailToast,
+  ImagePreview
+} from 'vant';
+import {
+  getAfterSalesDetail,
   uploadVoucher,
   getCustomerService,
   contactService,
   submitRating,
-  uploadImage,
-  acceptRepair
-} from '../api/repair';
+  uploadImage
+} from '../api/afterSales';
 
 const router = useRouter();
 const route = useRoute();
@@ -453,7 +366,8 @@ const customerService = ref({
   phone: '',
   serviceTime: '',
   wechatService: '',
-  faqs: []
+  faqs: [],
+  contactTypes: []
 });
 
 const showServicePopup = ref(false);
@@ -470,21 +384,47 @@ const serviceRating = ref(0);
 const ratingComment = ref('');
 const submittingRating = ref(false);
 
-const showAcceptPopup = ref(false);
-const acceptResult = ref('');
-const acceptComment = ref('');
-const submittingAccept = ref(false);
-
-const contactTypeOptions = [
-  { text: '咨询', value: 'consult' },
-  { text: '投诉', value: 'complaint' },
-  { text: '紧急求助', value: 'urgent' }
-];
+const contactTypeOptions = computed(() => {
+  return customerService.value.contactTypes || [
+    { text: '咨询', value: 'consult' },
+    { text: '投诉', value: 'complaint' },
+    { text: '紧急求助', value: 'urgent' },
+    { text: '建议反馈', value: 'suggestion' }
+  ];
+});
 
 const contactTypeText = computed(() => {
-  const item = contactTypeOptions.find(o => o.value === contactType.value);
+  const item = contactTypeOptions.value.find(o => o.value === contactType.value);
   return item ? item.text : '';
 });
+
+const reversedTracks = computed(() => {
+  if (!orderDetail.value?.statusTracks) return [];
+  return [...orderDetail.value.statusTracks].reverse();
+});
+
+const getTrackTypeClass = (type) => {
+  const classMap = {
+    system: 'system',
+    customer_service: 'service',
+    user: 'user'
+  };
+  return classMap[type] || 'system';
+};
+
+const getTrackIcon = (status) => {
+  const iconMap = {
+    submitted: 'checked',
+    accepted: 'user-o',
+    processing: 'clock-o',
+    completed: 'success',
+    rejected: 'close',
+    voucher_added: 'photo-o',
+    user_message: 'chat-o',
+    rated: 'star-o'
+  };
+  return iconMap[status] || 'info-o';
+};
 
 const onBack = () => {
   router.back();
@@ -493,12 +433,15 @@ const onBack = () => {
 const fetchOrderDetail = async () => {
   loading.value = true;
   error.value = '';
-  const orderId = route.query.orderId || 'BX20260115001';
+  const orderId = route.query.orderId || 'AS20260615001';
   try {
-    const res = await getRepairOrderDetail(orderId);
+    const res = await getAfterSalesDetail(orderId);
     if (res.data.code === 200) {
       orderDetail.value = res.data.data;
       vouchers.value = [...res.data.data.vouchers];
+      if (res.data.data.serviceRating) {
+        serviceRating.value = res.data.data.serviceRating;
+      }
     } else {
       error.value = res.data.message || '获取工单详情失败';
     }
@@ -521,10 +464,10 @@ const fetchCustomerService = async () => {
   }
 };
 
-const callWorker = (phone) => {
+const callHandler = (phone) => {
   showConfirmDialog({
     title: '确认拨打',
-    message: `是否拨打维修人员电话 ${phone}？`,
+    message: `是否拨打处理人员电话 ${phone}？`,
   }).then(() => {
     window.location.href = `tel:${phone}`;
   }).catch(() => {});
@@ -545,7 +488,7 @@ const onFileChange = async (e) => {
   const files = e.target.files;
   if (!files || files.length === 0) return;
 
-  const orderId = route.query.orderId || 'BX20260115001';
+  const orderId = route.query.orderId || 'AS20260615001';
 
   for (const file of files) {
     try {
@@ -624,6 +567,7 @@ const handleSubmitContact = async () => {
       contactType.value = '';
       contactContent.value = '';
       contactPhone.value = '';
+      fetchOrderDetail();
     }
   } catch (e) {
     showFailToast('发送失败');
@@ -641,7 +585,7 @@ const handleSubmitRating = async () => {
   submittingRating.value = true;
   try {
     const res = await submitRating({
-      orderId: route.query.orderId || 'BX20260115001',
+      orderId: route.query.orderId || 'AS20260615001',
       rating: serviceRating.value,
       comment: ratingComment.value
     });
@@ -661,54 +605,17 @@ const handleSubmitRating = async () => {
   }
 };
 
-const handleAcceptRepair = async () => {
-  if (!acceptResult.value) {
-    showToast('请选择验收结果');
-    return;
-  }
-
-  submittingAccept.value = true;
-  try {
-    const res = await acceptRepair({
-      orderId: route.query.orderId || 'BX20260115001',
-      result: acceptResult.value,
-      comment: acceptComment.value
-    });
-    if (res.data.code === 200) {
-      showSuccessToast(res.data.message);
-      showAcceptPopup.value = false;
-      acceptResult.value = '';
-      acceptComment.value = '';
-      if (orderDetail.value) {
-        orderDetail.value.status = res.data.data.status;
-        orderDetail.value.statusText = res.data.data.statusText;
-        orderDetail.value.statusTracks.push(res.data.data.statusTrack);
-      }
-    }
-  } catch (e) {
-    showFailToast('验收提交失败');
-  } finally {
-    submittingAccept.value = false;
-  }
-};
-
 onMounted(() => {
   fetchOrderDetail();
   fetchCustomerService();
-
-  if (route.query.contact === '1') {
-    setTimeout(() => {
-      showServicePopup.value = true;
-    }, 300);
-  }
 });
 </script>
 
 <style scoped>
-.repair-detail {
+.after-sales-detail {
   min-height: 100vh;
   background-color: #f7f8fa;
-  padding-bottom: 60px;
+  padding-bottom: 80px;
 }
 
 .header {
@@ -771,9 +678,15 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-.status-time {
+.status-priority {
+  padding: 4px 10px;
+  border-radius: 12px;
   font-size: 12px;
-  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.status-priority.high {
+  background: rgba(255, 77, 79, 0.8);
 }
 
 .info-card {
@@ -793,10 +706,21 @@ onMounted(() => {
   justify-content: space-between;
 }
 
-.fee-total {
+.order-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #323233;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.order-description {
   font-size: 14px;
-  color: #ff976a;
-  font-weight: normal;
+  color: #646566;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f2f3f5;
 }
 
 .info-row {
@@ -816,31 +740,22 @@ onMounted(() => {
   flex: 1;
 }
 
-.desc-row .value {
-  line-height: 1.5;
+.value.mono {
+  font-family: monospace;
 }
 
-.image-list {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+.value.highlight {
+  color: #07c160;
+  font-weight: 500;
 }
 
-.repair-image {
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-.worker-info {
+.handler-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.worker-avatar {
+.handler-avatar {
   width: 48px;
   height: 48px;
   background: #f2f3f5;
@@ -851,105 +766,163 @@ onMounted(() => {
   color: #969799;
 }
 
-.worker-detail {
+.handler-detail {
   flex: 1;
 }
 
-.worker-name {
+.handler-name {
   font-size: 15px;
   font-weight: 500;
   color: #323233;
   margin-bottom: 2px;
 }
 
-.worker-skill {
+.handler-role {
   font-size: 12px;
   color: #969799;
 }
 
-.fee-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-size: 14px;
-  color: #646566;
+.timeline {
+  position: relative;
+  padding-left: 8px;
 }
 
-.fee-amount {
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.timeline-item:not(.last)::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: 0;
+  width: 2px;
+  background: #ebedf0;
+}
+
+.timeline-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-dot.system {
+  background: linear-gradient(135deg, #1989fa, #07c160);
+}
+
+.timeline-dot.service {
+  background: linear-gradient(135deg, #ff976a, #ff6b35);
+}
+
+.timeline-dot.user {
+  background: linear-gradient(135deg, #7232dd, #a050ff);
+}
+
+.timeline-item.active .timeline-dot {
+  box-shadow: 0 2px 8px rgba(25, 137, 250, 0.4);
+}
+
+.timeline-content {
+  flex: 1;
+  padding-top: 4px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.timeline-title {
+  font-size: 14px;
+  font-weight: 600;
   color: #323233;
 }
 
-.guarantee-tip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #07c160;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #f2f3f5;
+.timeline-item.active .timeline-title {
+  color: #1989fa;
 }
 
-.step-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.step-time {
+.timeline-time {
   font-size: 12px;
   color: #969799;
-  font-weight: normal;
 }
 
-.step-desc {
+.timeline-desc {
   font-size: 13px;
   color: #646566;
+  line-height: 1.5;
+  margin-bottom: 4px;
 }
 
-.step-operator {
-  margin-top: 4px;
-  color: #969799;
+.timeline-operator {
   font-size: 12px;
+  color: #c8c9cc;
 }
 
 .voucher-grid {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .voucher-item {
-  width: 80px;
+  width: 90px;
 }
 
 .voucher-image {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 8px;
   object-fit: cover;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .voucher-name {
   font-size: 11px;
-  color: #969799;
+  color: #646566;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+  margin-bottom: 2px;
+}
+
+.voucher-time {
+  font-size: 10px;
+  color: #c8c9cc;
+  text-align: center;
 }
 
 .voucher-add {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border: 1px dashed #dcdee0;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.voucher-add:active {
+  background: #f0f0f0;
 }
 
 .add-text {
@@ -958,7 +931,10 @@ onMounted(() => {
 }
 
 .voucher-tip {
-  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
   font-size: 12px;
   color: #c8c9cc;
 }
@@ -997,21 +973,6 @@ onMounted(() => {
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   z-index: 50;
-}
-
-.bottom-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.bottom-actions .action-btn {
-  flex: 1;
-  border-radius: 24px;
-}
-
-.bottom-actions .action-btn.primary {
-  background: linear-gradient(90deg, #1989fa, #07c160);
-  border: none;
 }
 
 .service-popup {
@@ -1142,61 +1103,5 @@ onMounted(() => {
 .rating-label {
   font-size: 15px;
   color: #323233;
-}
-
-.accept-popup {
-  height: 100%;
-  overflow-y: auto;
-  padding: 0 16px 20px;
-}
-
-.accept-form {
-  padding-top: 10px;
-}
-
-.accept-label {
-  font-size: 15px;
-  font-weight: 500;
-  color: #323233;
-  margin-bottom: 12px;
-}
-
-.accept-options {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.accept-option {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 20px 12px;
-  border: 2px solid #ebedf0;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #646566;
-  transition: all 0.3s;
-}
-
-.accept-option.active {
-  border-color: #1989fa;
-  background: #e8f3ff;
-  color: #1989fa;
-}
-
-.accept-tip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px;
-  background: #f0f9ff;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #1989fa;
-  margin: 16px 0;
 }
 </style>

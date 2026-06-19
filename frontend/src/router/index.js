@@ -39,6 +39,21 @@ const routes = [
     path: '/repair-detail',
     name: 'RepairDetail',
     component: () => import('../views/RepairDetail.vue')
+  },
+  {
+    path: '/after-sales',
+    name: 'AfterSalesList',
+    component: () => import('../views/AfterSalesList.vue')
+  },
+  {
+    path: '/after-sales-detail',
+    name: 'AfterSalesDetail',
+    component: () => import('../views/AfterSalesDetail.vue')
+  },
+  {
+    path: '/after-sales-create',
+    name: 'AfterSalesCreate',
+    component: () => import('../views/AfterSalesCreate.vue')
   }
 ];
 

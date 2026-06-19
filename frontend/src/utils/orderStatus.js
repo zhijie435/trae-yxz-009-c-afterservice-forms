@@ -16,6 +16,7 @@ export const STATUS_MAPS = {
   repair: {
     pending: { status: 'pending', statusText: '待处理', statusColor: '#ff976a' },
     in_progress: { status: 'in_progress', statusText: '处理中', statusColor: '#ff976a' },
+    repairing: { status: 'repairing', statusText: '维修中', statusColor: '#ff976a' },
     completed: { status: 'completed', statusText: '已完成', statusColor: '#07c160' },
     cancelled: { status: 'cancelled', statusText: '已取消', statusColor: '#969799' }
   },
@@ -61,6 +62,7 @@ export const STATUS_OPTIONS = {
   repair: [
     { value: 'pending', label: '待处理' },
     { value: 'in_progress', label: '处理中' },
+    { value: 'repairing', label: '维修中' },
     { value: 'completed', label: '已完成' },
     { value: 'cancelled', label: '已取消' }
   ],

@@ -253,6 +253,7 @@ const submitRepair = (req, res) => {
 
     const orderId = 'BX' + Date.now() + Math.floor(Math.random() * 10000);
     const now = new Date();
+    const nowStr = now.toLocaleString('zh-CN');
     const status = 'pending';
 
     let estimatedTime = '';
@@ -263,6 +264,47 @@ const submitRepair = (req, res) => {
     } else {
       estimatedTime = '1-3个工作日内上门';
     }
+
+    const newOrder = {
+      id: orderId,
+      orderNo: orderId,
+      type: String(faultTypeId),
+      typeName: faultTypeName || '其他问题',
+      subTypeName: faultSubTypeName || '其他问题',
+      description: description.trim(),
+      images: images || [],
+      roomNumber: currentContract.roomNumber,
+      tenantName: currentContract.tenantName,
+      tenantPhone: currentContract.tenantPhone,
+      appointmentTime: appointmentTime || '',
+      status: status,
+      statusText: '待处理',
+      statusColor: '#ff976a',
+      createTime: nowStr,
+      worker: {
+        name: '',
+        phone: '',
+        avatar: '',
+        skill: ''
+      },
+      fee: 0,
+      feeDetail: [],
+      guaranteeDays: 90,
+      statusTracks: [
+        {
+          status: 'submitted',
+          statusText: '工单已提交',
+          time: nowStr,
+          description: '您的报修工单已成功提交，等待分配处理人员',
+          operator: '系统'
+        }
+      ],
+      vouchers: [],
+      serviceRating: null,
+      comment: ''
+    };
+
+    repairOrders.unshift(newOrder);
 
     res.json({
       code: 200,

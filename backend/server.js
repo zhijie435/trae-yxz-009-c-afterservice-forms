@@ -7,6 +7,7 @@ const terminationRoutes = require('./routes/termination');
 const repairRoutes = require('./routes/repair');
 const invoiceRoutes = require('./routes/invoice');
 const orderRoutes = require('./routes/order');
+const afterSalesRoutes = require('./routes/afterSales');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +22,7 @@ app.use('/api/termination', terminationRoutes);
 app.use('/api/repair', repairRoutes);
 app.use('/api/invoice', invoiceRoutes);
 app.use('/api/order', orderRoutes);
+app.use('/api/after-sales', afterSalesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '服务运行正常' });

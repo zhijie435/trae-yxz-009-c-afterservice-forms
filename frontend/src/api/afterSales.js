@@ -1,18 +1,24 @@
 import request from './rental';
 
-export const getRepairInfo = () => {
-  return request.get('/repair/info');
+export const getAfterSalesList = (params) => {
+  return request.get('/after-sales/list', { params });
 };
 
-export const submitRepair = (data) => {
-  return request.post('/repair/submit', data);
+export const getAfterSalesDetail = (orderId) => {
+  return request.get('/after-sales/detail', {
+    params: { orderId }
+  });
+};
+
+export const createAfterSales = (data) => {
+  return request.post('/after-sales/create', data);
 };
 
 export const uploadImage = (file) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  return request.post('/repair/upload-image', formData, {
+  return request.post('/after-sales/upload-image', formData, {
     timeout: 30000
   }).then((res) => {
     if (res.data.code === 200) {
@@ -37,30 +43,22 @@ export const uploadImage = (file) => {
   });
 };
 
-export const getRepairOrderList = (status) => {
-  return request.get('/repair/orders', { params: { status } });
-};
-
-export const getRepairOrderDetail = (orderId) => {
-  return request.get('/repair/order-detail', { params: { orderId } });
-};
-
 export const uploadVoucher = (data) => {
-  return request.post('/repair/upload-voucher', data);
+  return request.post('/after-sales/upload-voucher', data);
 };
 
 export const getCustomerService = () => {
-  return request.get('/repair/customer-service');
+  return request.get('/after-sales/customer-service');
 };
 
 export const contactService = (data) => {
-  return request.post('/repair/contact-service', data);
+  return request.post('/after-sales/contact-service', data);
 };
 
 export const submitRating = (data) => {
-  return request.post('/repair/rating', data);
+  return request.post('/after-sales/rating', data);
 };
 
-export const acceptRepair = (data) => {
-  return request.post('/repair/accept', data);
+export const getAfterSalesTypes = () => {
+  return request.get('/after-sales/types');
 };
