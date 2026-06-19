@@ -162,20 +162,20 @@ const customerService = {
 };
 
 const faultTypes = [
-  { id: 1, name: '水电维修', icon: 'water-o', subTypes: [
+  { id: 1, name: '水电维修', icon: 'umbrella-circle', subTypes: [
     { id: '1-1', name: '水龙头漏水' },
     { id: '1-2', name: '下水道堵塞' },
     { id: '1-3', name: '灯具损坏' },
     { id: '1-4', name: '电路故障' }
   ]},
-  { id: 2, name: '家具家电', icon: 'tv-o', subTypes: [
+  { id: 2, name: '家具家电', icon: 'desktop-o', subTypes: [
     { id: '2-1', name: '空调故障' },
     { id: '2-2', name: '洗衣机故障' },
     { id: '2-3', name: '冰箱故障' },
     { id: '2-4', name: '热水器故障' },
     { id: '2-5', name: '桌椅家具损坏' }
   ]},
-  { id: 3, name: '门窗锁具', icon: 'gold-coin-o', subTypes: [
+  { id: 3, name: '门窗锁具', icon: 'lock', subTypes: [
     { id: '3-1', name: '门锁故障' },
     { id: '3-2', name: '窗户损坏' },
     { id: '3-3', name: '窗帘问题' }
@@ -185,7 +185,7 @@ const faultTypes = [
     { id: '4-2', name: '地砖/地板损坏' },
     { id: '4-3', name: '天花板漏水' }
   ]},
-  { id: 5, name: '其他问题', icon: 'other-o', subTypes: [
+  { id: 5, name: '其他问题', icon: 'service-o', subTypes: [
     { id: '5-1', name: '清洁服务' },
     { id: '5-2', name: '其他问题' }
   ]}

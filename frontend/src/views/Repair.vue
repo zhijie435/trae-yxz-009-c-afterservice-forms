@@ -30,7 +30,7 @@
           @click="selectFaultType(type)"
         >
           <div class="type-icon">
-            <van-icon :name="type.icon" size="24" :color="selectedFaultType?.id === type.id ? '#1989fa' : '#646566'" />
+            <span class="type-emoji">{{ iconMap[type.id] || '🔧' }}</span>
           </div>
           <div class="type-name">{{ type.name }}</div>
         </div>
@@ -239,6 +239,14 @@ const submitting = ref(false);
 const submitResult = ref(null);
 const fileInputRef = ref(null);
 const tempTime = ref('');
+
+const iconMap = {
+  1: '💧',
+  2: '📺',
+  3: '🔒',
+  4: '🏠',
+  5: '🔧'
+};
 
 const timeOptions = [
   { label: '工作日 09:00-12:00', value: 'workday_morning' },
@@ -493,6 +501,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
+}
+
+.type-emoji {
+  font-size: 24px;
+  line-height: 1;
 }
 
 .type-name {
