@@ -1,3 +1,5 @@
+const { getStatusInfo } = require('../utils/orderStatusManager');
+
 const repairOrders = [
   {
     id: 'BX20260115001',
@@ -545,133 +547,182 @@ const submitRating = (req, res) => {
 
 const uploadImage = (req, res) => {
   try {
-    const { fileName, fileType, fileSize, fileData } = req.body;
-
-    if (!fileName) {
-      return res.status(400).json({
-        code: 400,
-        message: '文件名不能为空'
-      });
-    }
-
-    if (!fileType) {
-      return res.status(400).json({
-        code: 400,
-        message: '文件类型不能为空'
-      });
-    }
-
-    if (!fileData) {
+    if (!req.file) {
       return res.status(400).json({
         code: 400,
         message: '文件内容不能为空，请重新选择文件'
       });
     }
 
-    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
-    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
-    const isImage = allowedImageTypes.includes(fileType);
-    const isVideo = allowedVideoTypes.includes(fileType);
-
-    if (!isImage && !isVideo) {
-      const typeMap = {
-        'image/jpeg': 'JPG',
-        'image/jpg': 'JPG',
-        'image/png': 'PNG',
-        'image/gif': 'GIF',
-        'image/webp': 'WEBP',
-        'image/bmp': 'BMP',
-        'video/mp4': 'MP4',
-        'video/webm': 'WEBM',
-        'video/ogg': 'OGG',
-        'video/quicktime': 'MOV'
-      };
-      return res.status(400).json({
-        code: 400,
-        message: `不支持的文件格式（${fileType || '未知格式'}），仅支持 JPG、PNG、GIF、WEBP 图片和 MP4 视频`
-      });
-    }
+    const file = req.file;
+    const isImage = file.mimetype.startsWith('image/');
+    const isVideo = file.mimetype.startsWith('video/');
 
     const maxImageSize = 10 * 1024 * 1024;
     const maxVideoSize = 100 * 1024 * 1024;
 
-    if (isImage && fileSize > maxImageSize) {
+    if (isImage && file.size > maxImageSize) {
       return res.status(400).json({
         code: 400,
-        message: `图片大小不能超过 10MB，当前文件大小为 ${(fileSize / 1024 / 1024).toFixed(2)}MB`
+        message: `图片大小不能超过 10MB，当前文件大小为 ${(file.size / 1024 / 1024).toFixed(2)}MB`
       });
     }
 
-    if (isVideo && fileSize > maxVideoSize) {
+    if (isVideo && file.size > maxVideoSize) {
       return res.status(400).json({
         code: 400,
-        message: `视频大小不能超过 100MB，当前文件大小为 ${(fileSize / 1024 / 1024).toFixed(2)}MB`
+        message: `视频大小不能超过 100MB，当前文件大小为 ${(file.size / 1024 / 1024).toFixed(2)}MB`
       });
     }
 
-    if (!fileSize || fileSize <= 0) {
-      return res.status(400).json({
-        code: 400,
-        message: '文件大小为 0，可能是文件已损坏或未正确读取'
-      });
-    }
+    const url = `/uploads/repair/${file.filename}`;
 
-    if (isImage && fileSize < 1024) {
-      return res.status(400).json({
-        code: 400,
-        message: '图片文件过小，可能是文件已损坏，请重新选择清晰的图片'
-      });
-    }
-
-    const fileExtension = fileName.split('.').pop().toLowerCase();
-    const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-    const validVideoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'qt'];
-    if (isImage && !validImageExtensions.includes(fileExtension)) {
-      return res.status(400).json({
-        code: 400,
-        message: `图片文件后缀名不匹配（.${fileExtension}），请检查文件格式是否正确`
-      });
-    }
-    if (isVideo && !validVideoExtensions.includes(fileExtension)) {
-      return res.status(400).json({
-        code: 400,
-        message: `视频文件后缀名不匹配（.${fileExtension}），请检查文件格式是否正确`
-      });
-    }
-
-    const errorRate = 0.05;
-    if (Math.random() < errorRate) {
-      const errors = [
-        '服务器存储空间不足，请稍后重试或联系客服',
-        '上传通道繁忙，请稍后重试',
-        '网络连接中断，请检查网络后重试',
-        '文件读取超时，请重新选择文件上传'
-      ];
-      return res.status(500).json({
-        code: 500,
-        message: errors[Math.floor(Math.random() * errors.length)]
-      });
-    }
-
-    const url = `https://picsum.photos/seed/${Date.now()}/${isVideo ? 400 : 600}/${isVideo ? 300 : 600}`;
-
-    setTimeout(() => {
-      res.json({
-        code: 200,
-        message: '上传成功',
-        data: {
-          url,
-          name: fileName,
-          type: isImage ? 'image' : 'video',
-          size: fileSize
-        }
-      });
-    }, 300 + Math.random() * 500);
-
+    res.json({
+      code: 200,
+      message: '上传成功',
+      data: {
+        url,
+        name: file.originalname,
+        type: isImage ? 'image' : 'video',
+        size: file.size
+      }
+    });
   } catch (error) {
     res.status(500).json({
       code: 500,
       message: `上传失败：${error.message || '未知错误'}，请检查网络或重新选择文件`
+    });
+  }
+};
+
+const workOrderCallback = (req, res) => {
+  try {
+    const { orderId, status, operator, description, workerName, workerPhone, fee } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        code: 400,
+        message: '工单ID不能为空'
+      });
+    }
+
+    const order = repairOrders.find(o => o.id === orderId);
+    if (!order) {
+      return res.status(404).json({
+        code: 404,
+        message: '工单不存在'
+      });
+    }
+
+    const statusInfo = getStatusInfo('repair', status);
+    const now = new Date().toLocaleString('zh-CN');
+
+    if (statusInfo) {
+      order.status = statusInfo.status;
+      order.statusText = statusInfo.statusText;
+      order.statusColor = statusInfo.statusColor;
+    }
+
+    if (workerName) order.worker.name = workerName;
+    if (workerPhone) order.worker.phone = workerPhone;
+    if (fee !== undefined) order.fee = fee;
+
+    const trackItem = {
+      status: status || 'callback',
+      statusText: statusInfo ? statusInfo.statusText : (description ? '工单状态更新' : '工单回调'),
+      time: now,
+      description: description || `工单状态已通过回调更新为${statusInfo ? statusInfo.statusText : (status || '未知')}`,
+      operator: operator || '系统回调'
+    };
+    order.statusTracks.push(trackItem);
+
+    res.json({
+      code: 200,
+      message: '工单回调处理成功',
+      data: {
+        orderId: order.id,
+        status: order.status,
+        statusText: order.statusText,
+        statusTrack: trackItem
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '工单回调处理失败',
+      error: error.message
+    });
+  }
+};
+
+const acceptRepair = (req, res) => {
+  try {
+    const { orderId, result, comment } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        code: 400,
+        message: '工单ID不能为空'
+      });
+    }
+
+    if (!result || !['accepted', 'rejected'].includes(result)) {
+      return res.status(400).json({
+        code: 400,
+        message: '请选择验收结果（accepted/rejected）'
+      });
+    }
+
+    const order = repairOrders.find(o => o.id === orderId);
+    if (!order) {
+      return res.status(404).json({
+        code: 404,
+        message: '工单不存在'
+      });
+    }
+
+    const passed = result === 'accepted';
+    const now = new Date().toLocaleString('zh-CN');
+
+    const trackItem = {
+      status: passed ? 'accepted' : 'rejected',
+      statusText: passed ? '验收通过' : '验收未通过',
+      time: now,
+      description: passed
+        ? `租户验收通过${comment ? '：' + comment : ''}`
+        : `租户验收未通过${comment ? '：' + comment : ''}，需返工处理`,
+      operator: order.tenantName
+    };
+    order.statusTracks.push(trackItem);
+
+    if (passed) {
+      order.status = 'completed';
+      order.statusText = '已完成';
+      order.statusColor = '#07c160';
+    } else {
+      order.status = 'in_progress';
+      order.statusText = '维修中';
+      order.statusColor = '#ff976a';
+    }
+
+    order.acceptance = { result, comment: comment || '', time: now };
+
+    res.json({
+      code: 200,
+      message: passed ? '验收通过，工单已完成' : '验收未通过，工单已转返工',
+      data: {
+        orderId: order.id,
+        result,
+        status: order.status,
+        statusText: order.statusText,
+        statusTrack: trackItem
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '工单验收失败',
+      error: error.message
     });
   }
 };
@@ -683,6 +734,8 @@ module.exports = {
   getRepairOrderDetail,
   uploadImage,
   uploadVoucher,
+  workOrderCallback,
+  acceptRepair,
   getCustomerService,
   contactService,
   submitRating
