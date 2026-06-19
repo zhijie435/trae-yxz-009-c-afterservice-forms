@@ -258,7 +258,7 @@
               :key="s.value"
               size="small"
               :type="order?.renewal?.status === s.value ? 'primary' : 'default'"
-              @click="handleUpdateRenewalStatus(s.value)"
+              @click="onUpdateRenewalStatus(s.value)"
             >
               {{ s.label }}
             </van-button>
@@ -272,7 +272,7 @@
               :key="s.value"
               size="small"
               :type="order?.termination?.status === s.value ? 'danger' : 'default'"
-              @click="handleUpdateTerminationStatus(s.value)"
+              @click="onUpdateTerminationStatus(s.value)"
             >
               {{ s.label }}
             </van-button>
@@ -299,10 +299,51 @@
               size="small"
               :type="order.repairs.find(r => r.id === selectedRepairId)?.status === s.value ? 'warning' : 'default'"
               :disabled="!selectedRepairId"
-              @click="handleUpdateRepairStatus(s.value)"
+              @click="onUpdateRepairStatus(s.value)"
             >
               {{ s.label }}
             </van-button>
+          </div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-label">发票状态</div>
+          <div class="modal-btns">
+            <van-radio-group v-model="selectedInvoiceStatus" direction="horizontal">
+              <div class="invoice-radio-group">
+                <van-radio
+                  v-for="s in invoiceStatusOptions"
+                  :key="s.value"
+                  :name="s.value"
+                >
+                  {{ s.label }}
+                </van-radio>
+              </div>
+            </van-radio-group>
+          </div>
+          <van-button
+            type="primary"
+            size="small"
+            block
+            @click="onUpdateInvoiceStatus"
+            style="margin-top: 12px;"
+          >
+            更新发票状态（模拟：ZL202501010001, ZL202502010002）
+          </van-button>
+          <div v-if="order?.invoices?.length > 0" class="invoice-list" style="margin-top: 12px;">
+            <div class="invoice-item" v-for="inv in order.invoices" :key="inv.invoiceId">
+              <div class="invoice-row">
+                <span class="invoice-label">发票号</span>
+                <span class="invoice-value">{{ inv.invoiceId }}</span>
+              </div>
+              <div class="invoice-row">
+                <span class="invoice-label">状态</span>
+                <van-tag :color="getInvoiceStatusColor(inv.status)" size="mini">{{ getInvoiceStatusText(inv.status) }}</van-tag>
+              </div>
+              <div class="invoice-row">
+                <span class="invoice-label">金额</span>
+                <span class="invoice-value price">{{ inv.totalAmount?.toFixed(2) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -314,62 +355,33 @@
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { showToast, showLoadingToast, closeToast } from 'vant';
-import {
-  getOrderDetail,
-  updateRenewalStatus,
-  updateTerminationStatus,
-  updateRepairStatus
-} from '../api/order';
+import { getOrderDetail } from '../api/order';
+import { useOrderStatus } from '../composables/useOrderStatus';
 
 const router = useRouter();
 const route = useRoute();
 
 const order = ref(null);
 const showStatusModal = ref(false);
-const selectedRepairId = ref(null);
 
-const renewalStatusOptions = [
-  { value: 'none', label: '未申请' },
-  { value: 'pending', label: '审核中' },
-  { value: 'approved', label: '已同意' },
-  { value: 'rejected', label: '已拒绝' },
-  { value: 'completed', label: '已完成' }
-];
+const {
+  selectedRepairId,
+  renewalStatusOptions,
+  terminationStatusOptions,
+  repairStatusOptions,
+  invoiceStatusOptions,
+  getRenewalStatusColor,
+  getTerminationStatusColor,
+  getInvoiceStatusColor,
+  getInvoiceStatusText,
+  handleUpdateRenewalStatus,
+  handleUpdateTerminationStatus,
+  handleUpdateRepairStatus,
+  handleUpdateInvoiceStatus,
+  updateOrderState
+} = useOrderStatus();
 
-const terminationStatusOptions = [
-  { value: 'none', label: '未申请' },
-  { value: 'pending', label: '审核中' },
-  { value: 'approved', label: '已同意' },
-  { value: 'rejected', label: '已拒绝' },
-  { value: 'completed', label: '已完成' }
-];
-
-const repairStatusOptions = [
-  { value: 'pending', label: '待处理' },
-  { value: 'in_progress', label: '处理中' },
-  { value: 'completed', label: '已完成' },
-  { value: 'cancelled', label: '已取消' }
-];
-
-const getRenewalStatusColor = (status) => {
-  const map = {
-    pending: '#ff976a',
-    approved: '#07c160',
-    rejected: '#ee0a24',
-    completed: '#1989fa'
-  };
-  return map[status] || '#969799';
-};
-
-const getTerminationStatusColor = (status) => {
-  const map = {
-    pending: '#ff976a',
-    approved: '#07c160',
-    rejected: '#ee0a24',
-    completed: '#969799'
-  };
-  return map[status] || '#969799';
-};
+const selectedInvoiceStatus = ref('pending');
 
 const goToRenewal = () => {
   router.push('/renewal');
@@ -411,107 +423,34 @@ const fetchOrderDetail = async () => {
   }
 };
 
-const handleUpdateRenewalStatus = async (status) => {
-  showLoadingToast({
-    message: '更新中...',
-    forbidClick: true,
-    duration: 0
-  });
-
-  try {
-    const res = await updateRenewalStatus({
-      orderId: order.value.id,
-      status,
-      startDate: '2026-08-01',
-      endDate: '2027-01-31',
-      monthlyRent: 3500,
-      discount: status === 'approved' || status === 'completed' ? 5 : 0
-    });
-
-    closeToast();
-
-    if (res.data.code === 200) {
-      order.value.renewal = res.data.data.renewal;
-      showToast('续租状态更新成功');
-    } else {
-      showToast(res.data.message || '更新失败');
-    }
-  } catch (error) {
-    closeToast();
-    showToast('网络错误，请稍后重试');
+const onUpdateRenewalStatus = async (status) => {
+  const data = await handleUpdateRenewalStatus(order.value.id, status);
+  if (data) {
+    updateOrderState(order.value, 'renewal', data);
   }
 };
 
-const handleUpdateTerminationStatus = async (status) => {
-  showLoadingToast({
-    message: '更新中...',
-    forbidClick: true,
-    duration: 0
-  });
-
-  try {
-    const res = await updateTerminationStatus({
-      orderId: order.value.id,
-      status,
-      moveOutDate: '2026-06-30',
-      refundAmount: status === 'approved' || status === 'completed' ? 3500 : null,
-      reason: '工作调动'
-    });
-
-    closeToast();
-
-    if (res.data.code === 200) {
-      order.value.termination = res.data.data.termination;
-      if (res.data.data.status) {
-        order.value.status = res.data.data.status;
-        order.value.statusText = res.data.data.statusText;
-      }
-      showToast('退租状态更新成功');
-    } else {
-      showToast(res.data.message || '更新失败');
-    }
-  } catch (error) {
-    closeToast();
-    showToast('网络错误，请稍后重试');
+const onUpdateTerminationStatus = async (status) => {
+  const data = await handleUpdateTerminationStatus(order.value.id, status);
+  if (data) {
+    updateOrderState(order.value, 'termination', data);
   }
 };
 
-const handleUpdateRepairStatus = async (status) => {
-  if (!selectedRepairId.value) {
-    showToast('请选择报修单');
-    return;
+const onUpdateRepairStatus = async (status) => {
+  const data = await handleUpdateRepairStatus(order.value.id, selectedRepairId.value, status);
+  if (data) {
+    updateOrderState(order.value, 'repair', data);
   }
+};
 
-  showLoadingToast({
-    message: '更新中...',
-    forbidClick: true,
-    duration: 0
+const onUpdateInvoiceStatus = async () => {
+  const testOrderIds = ['ZL202501010001', 'ZL202502010002'];
+  const data = await handleUpdateInvoiceStatus(testOrderIds, selectedInvoiceStatus.value, {
+    invoiceId: 'FP' + Date.now()
   });
-
-  try {
-    const res = await updateRepairStatus({
-      orderId: order.value.id,
-      repairId: selectedRepairId.value,
-      status,
-      workerName: '张师傅',
-      workerPhone: '138****6666',
-      fee: 200
-    });
-
-    closeToast();
-
-    if (res.data.code === 200) {
-      const idx = order.value.repairs.findIndex(r => r.id === selectedRepairId.value);
-      if (idx !== -1) {
-        order.value.repairs[idx] = res.data.data.repair;
-      }
-      showToast('报修状态更新成功');
-    } else {
-      showToast(res.data.message || '更新失败');
-    }
-  } catch (error) {
-    closeToast();
-    showToast('网络错误，请稍后重试');
+  if (data) {
+    updateOrderState(order.value, 'invoice', data);
   }
 };
 
@@ -823,5 +762,43 @@ onMounted(() => {
   padding: 6px 0;
   font-size: 14px;
   color: #323233;
+}
+
+.invoice-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.invoice-list {
+  background: #f7f8fa;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.invoice-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.invoice-item:last-child {
+  border-bottom: none;
+}
+
+.invoice-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.invoice-label {
+  color: #969799;
+}
+
+.invoice-value {
+  color: #323233;
+  font-family: monospace;
 }
 </style>

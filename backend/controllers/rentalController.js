@@ -1,4 +1,9 @@
-const orders = require('../models/orders');
+const {
+  findOrder,
+  updateRenewalStatus,
+  calculateEndDate,
+  handleError
+} = require('../utils/orderStatusManager');
 
 const rentalDurations = [
   { id: 1, months: 1, label: '1个月', discount: 0 },
@@ -17,7 +22,7 @@ const currentContract = {
 };
 
 const getCurrentOrder = () => {
-  return orders.find(o => o.roomNumber === currentContract.roomNumber);
+  return findOrder('HT202601001');
 };
 
 const getRentalDurations = (req, res) => {
@@ -33,11 +38,7 @@ const getRentalDurations = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '获取续租时长失败',
-      error: error.message
-    });
+    handleError(res, error, '获取续租时长失败');
   }
 };
 
@@ -91,11 +92,7 @@ const calculateRentalFee = (req, res) => {
       data: breakdown
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '费用计算失败',
-      error: error.message
-    });
+    handleError(res, error, '费用计算失败');
   }
 };
 
@@ -125,22 +122,12 @@ const submitPayment = (req, res) => {
 
     const currentOrder = getCurrentOrder();
     if (currentOrder) {
-      const statusMap = {
-        none: { status: 'none', statusText: '未申请' },
-        pending: { status: 'pending', statusText: '审核中' },
-        approved: { status: 'approved', statusText: '已同意' },
-        rejected: { status: 'rejected', statusText: '已拒绝' },
-        completed: { status: 'completed', statusText: '已完成' }
-      };
-      const statusInfo = statusMap.pending;
-      currentOrder.renewal.status = statusInfo.status;
-      currentOrder.renewal.statusText = statusInfo.statusText;
-      currentOrder.renewal.applicationTime = now.toLocaleString('zh-CN');
-      currentOrder.renewal.approvedTime = null;
-      currentOrder.renewal.newStartDate = startDate || currentContract.contractEndDate;
-      currentOrder.renewal.newEndDate = calculateEndDate(startDate || currentContract.contractEndDate, duration.months);
-      currentOrder.renewal.newMonthlyRent = feeBreakdown.monthlyRent * (1 - duration.discount);
-      currentOrder.renewal.discount = duration.discount * 100;
+      updateRenewalStatus(currentOrder.id, 'pending', {
+        startDate: startDate || currentContract.contractEndDate,
+        endDate: calculateEndDate(startDate || currentContract.contractEndDate, duration.months),
+        monthlyRent: feeBreakdown.monthlyRent * (1 - duration.discount),
+        discount: duration.discount * 100
+      });
     }
 
     res.json({
@@ -161,20 +148,9 @@ const submitPayment = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '提交支付失败',
-      error: error.message
-    });
+    handleError(res, error, '提交支付失败');
   }
 };
-
-function calculateEndDate(startDate, months) {
-  const date = new Date(startDate);
-  date.setMonth(date.getMonth() + months);
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().split('T')[0];
-}
 
 const confirmRenewalPayment = (req, res) => {
   try {
@@ -195,10 +171,7 @@ const confirmRenewalPayment = (req, res) => {
       });
     }
 
-    const now = new Date();
-    currentOrder.renewal.status = 'completed';
-    currentOrder.renewal.statusText = '已完成';
-    currentOrder.renewal.approvedTime = now.toLocaleString('zh-CN');
+    updateRenewalStatus(currentOrder.id, 'completed');
 
     res.json({
       code: 200,
@@ -209,11 +182,7 @@ const confirmRenewalPayment = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '确认支付失败',
-      error: error.message
-    });
+    handleError(res, error, '确认支付失败');
   }
 };
 

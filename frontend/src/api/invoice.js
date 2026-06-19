@@ -16,4 +16,8 @@ export const submitInvoiceApplication = (data) => {
   return request.post('/invoice/submit', data);
 };
 
+export const updateInvoiceStatus = (data) => {
+  return request.post('/invoice/status', data);
+};
+
 export default request;

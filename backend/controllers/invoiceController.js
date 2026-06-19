@@ -1,55 +1,12 @@
-const orders = [
-  {
-    id: 'ZL202501010001',
-    type: 'rent',
-    typeName: '房租订单',
-    roomNumber: 'A栋1203室',
-    amount: 3500,
-    period: '2026-01-01 至 2026-01-31',
-    createTime: '2026-01-01 10:00:00',
-    hasInvoice: false
-  },
-  {
-    id: 'ZL202502010002',
-    type: 'rent',
-    typeName: '房租订单',
-    roomNumber: 'A栋1203室',
-    amount: 3500,
-    period: '2026-02-01 至 2026-02-28',
-    createTime: '2026-02-01 10:00:00',
-    hasInvoice: false
-  },
-  {
-    id: 'ZL202503010003',
-    type: 'rent',
-    typeName: '房租订单',
-    roomNumber: 'A栋1203室',
-    amount: 3500,
-    period: '2026-03-01 至 2026-03-31',
-    createTime: '2026-03-01 10:00:00',
-    hasInvoice: true
-  },
-  {
-    id: 'XZ202501150001',
-    type: 'repair',
-    typeName: '报修订单',
-    roomNumber: 'A栋1203室',
-    amount: 180,
-    period: '空调维修',
-    createTime: '2026-01-15 14:30:00',
-    hasInvoice: false
-  },
-  {
-    id: 'XZ202502200002',
-    type: 'repair',
-    typeName: '报修订单',
-    roomNumber: 'A栋1203室',
-    amount: 120,
-    period: '水龙头更换',
-    createTime: '2026-02-20 09:15:00',
-    hasInvoice: false
-  }
-];
+const {
+  updateInvoiceStatus: updateInvoiceStatusUtil,
+  findInvoiceOrder,
+  validateInvoiceOrderExists,
+  handleError
+} = require('../utils/orderStatusManager');
+const invoiceOrders = require('../models/invoiceOrders');
+
+const orders = invoiceOrders;
 
 const invoiceTitles = [
   {
@@ -102,11 +59,7 @@ const getInvoiceOrders = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '获取订单列表失败',
-      error: error.message
-    });
+    handleError(res, error, '获取订单列表失败');
   }
 };
 
@@ -120,11 +73,7 @@ const getInvoiceTitles = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '获取发票抬头失败',
-      error: error.message
-    });
+    handleError(res, error, '获取发票抬头失败');
   }
 };
 
@@ -138,11 +87,7 @@ const getAddressList = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '获取地址列表失败',
-      error: error.message
-    });
+    handleError(res, error, '获取地址列表失败');
   }
 };
 
@@ -191,6 +136,22 @@ const submitInvoiceApplication = (req, res) => {
 
     const address = addressList.find(addr => addr.id === addressId) || addressList[0];
 
+    const addressData = {
+      name: address.name,
+      phone: address.phone,
+      fullAddress: `${address.province}${address.city}${address.district}${address.detail}`
+    };
+
+    updateInvoiceStatusUtil(orderIds, 'pending', {
+      invoiceId,
+      invoiceType,
+      invoiceTitle,
+      taxNumber,
+      totalAmount,
+      address: addressData,
+      remark
+    });
+
     res.json({
       code: 200,
       message: '提交成功',
@@ -202,11 +163,7 @@ const submitInvoiceApplication = (req, res) => {
         totalAmount,
         orderCount: selectedOrders.length,
         orders: selectedOrders,
-        address: {
-          name: address.name,
-          phone: address.phone,
-          fullAddress: `${address.province}${address.city}${address.district}${address.detail}`
-        },
+        address: addressData,
         remark: remark || '',
         status: 'pending',
         statusName: '待开票',
@@ -215,11 +172,47 @@ const submitInvoiceApplication = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '提交发票申请失败',
-      error: error.message
+    handleError(res, error, '提交发票申请失败');
+  }
+};
+
+const updateInvoiceStatus = (req, res) => {
+  try {
+    const { orderIds, status, invoiceId, expressNumber } = req.body;
+
+    if (!orderIds || orderIds.length === 0) {
+      return res.status(400).json({
+        code: 400,
+        message: '订单ID不能为空'
+      });
+    }
+
+    if (!invoiceId) {
+      return res.status(400).json({
+        code: 400,
+        message: '发票ID不能为空'
+      });
+    }
+
+    const updatedOrders = updateInvoiceStatusUtil(orderIds, status, {
+      invoiceId,
+      expressNumber
     });
+
+    res.json({
+      code: 200,
+      message: '发票状态更新成功',
+      data: {
+        updatedCount: updatedOrders.length,
+        orders: updatedOrders.map(o => ({
+          orderId: o.id,
+          hasInvoice: o.hasInvoice,
+          invoices: o.invoices
+        }))
+      }
+    });
+  } catch (error) {
+    handleError(res, error, '更新发票状态失败');
   }
 };
 
@@ -227,5 +220,6 @@ module.exports = {
   getInvoiceOrders,
   getInvoiceTitles,
   getAddressList,
-  submitInvoiceApplication
+  submitInvoiceApplication,
+  updateInvoiceStatus
 };

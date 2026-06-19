@@ -1,4 +1,8 @@
-const orders = require('../models/orders');
+const {
+  findOrder,
+  updateTerminationStatus,
+  handleError
+} = require('../utils/orderStatusManager');
 
 const currentContract = {
   roomNumber: 'A栋1203室',
@@ -11,7 +15,7 @@ const currentContract = {
 };
 
 const getCurrentOrder = () => {
-  return orders.find(o => o.roomNumber === currentContract.roomNumber);
+  return findOrder('HT202601001');
 };
 
 const getTerminationInfo = (req, res) => {
@@ -41,11 +45,7 @@ const getTerminationInfo = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '获取退租信息失败',
-      error: error.message
-    });
+    handleError(res, error, '获取退租信息失败');
   }
 };
 
@@ -90,25 +90,14 @@ const submitTermination = (req, res) => {
 
     const orderId = 'TZ' + Date.now() + Math.floor(Math.random() * 10000);
     const now = new Date();
-    const status = 'pending';
 
     const currentOrder = getCurrentOrder();
     if (currentOrder) {
-      const statusMap = {
-        none: { status: 'none', statusText: '未申请' },
-        pending: { status: 'pending', statusText: '审核中' },
-        approved: { status: 'approved', statusText: '已同意' },
-        rejected: { status: 'rejected', statusText: '已拒绝' },
-        completed: { status: 'completed', statusText: '已完成' }
-      };
-      const statusInfo = statusMap[status] || statusMap.none;
-      currentOrder.termination.status = statusInfo.status;
-      currentOrder.termination.statusText = statusInfo.statusText;
-      currentOrder.termination.applicationTime = now.toLocaleString('zh-CN');
-      currentOrder.termination.approvedTime = null;
-      currentOrder.termination.moveOutDate = moveOutDate;
-      currentOrder.termination.refundAmount = currentContract.deposit;
-      currentOrder.termination.reason = remark || '';
+      updateTerminationStatus(currentOrder.id, 'pending', {
+        moveOutDate,
+        refundAmount: currentContract.deposit,
+        reason: remark || ''
+      });
     }
 
     res.json({
@@ -128,18 +117,14 @@ const submitTermination = (req, res) => {
         expressNumber: expressNumber || '',
         remark: remark || '',
         depositRefundable: currentContract.deposit,
-        status,
+        status: 'pending',
         statusText: '待审核',
         submitTime: now.toISOString(),
         estimatedRefundDate: calculateRefundDate(moveOutDate)
       }
     });
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '提交退租申请失败',
-      error: error.message
-    });
+    handleError(res, error, '提交退租申请失败');
   }
 };
 
